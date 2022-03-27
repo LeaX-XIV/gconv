@@ -67,6 +67,8 @@ def inputEdgeList(lines):
         else:
             result[str(v)].append(int(w))
 
+        if str(w) not in result:
+            result[str(w)] = []
         if str(w) not in indexmap:
             indexmap[str(w)] = i
             i += 1
