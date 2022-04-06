@@ -12,6 +12,7 @@ class Setting(Flag):
     OUT_V = auto()
     OUT_E = auto()
     OUT_BV = auto()
+    NO_LOOP = auto()
     UNDIR = auto()
     SORT = auto()
 
@@ -34,18 +35,30 @@ def inputVertexList(lines):
         line = lines[i]
         edges = line.split(":")
         v, edges = edges
-
         edges = edges.strip().split(' ')
+
+        # edges = line.strip().split(' ')
+        # v = i
         assert edges[-1] == '#', "Last element of line expected to be '#'"
         edges = edges[:-1]
+        if str(v) in result.keys():
+            raise ValueError("Declared twice vertex " + v)
         result[str(v)] = list(map(int, edges))
         indexmap[str(v)] = i
 
+    # Correction for empty nodes not present
+    correction = []
     for edges in result.values():
         for w in edges:
             if str(w) not in indexmap:
-                indexmap[str(w)] = nV
-                nV += 1
+                correction.append(str(w))
+
+    for w in correction:
+        if w not in result.keys():
+            result[w] = []
+        if w not in indexmap:
+            indexmap[w] = nV
+            nV += 1
 
     return [result, indexmap]
 
@@ -103,6 +116,16 @@ def inputBinaryVertex(chunk, result={}, indexmap={}):
             result[v].append(w)
 
     return [result, indexmap]
+
+
+def removeLoops(nodeList, indexmap):
+    for v, edges in nodeList.items():
+        try:
+            edges.remove(int(v))
+        except ValueError:
+            continue
+
+    return [nodeList, indexmap]
 
 
 def checkUndir(nodeList, indexmap):
@@ -204,7 +227,7 @@ def convert(inF, outF, settings):
 
     print(f"Loading {inF}...")
 
-    assert len(Setting) == 9, "Exhaustive Setting definition"
+    assert len(Setting) == 10, "Exhaustive Setting definition"
     if settings & Setting.IN_E:
         with open(inF, 'r') as f:
             [nodes, indexmap] = inputEdgeList(f.readlines())
@@ -224,7 +247,12 @@ def convert(inF, outF, settings):
 
     print("Loading complete!")
 
-    assert len(Setting) == 9, "Exhaustive Setting definition"
+    assert len(Setting) == 10, "Exhaustive Setting definition"
+    if settings & Setting.NO_LOOP:
+        print("Removing looping edges...")
+        [nodes, indexmap] = removeLoops(nodes, indexmap)
+        print("Looping edges removed!")
+
     if settings & Setting.UNDIR:
         print("Checking graph for direct edges...")
         [nodes, indexmap] = checkUndir(nodes, indexmap)
@@ -232,7 +260,7 @@ def convert(inF, outF, settings):
 
     print(f"Writing output file {outF}...")
 
-    assert len(Setting) == 9, "Exhaustive Setting definition"
+    assert len(Setting) == 10, "Exhaustive Setting definition"
     if settings & Setting.OUT_E:
         with open(outF, 'w') as f:
             f.write(ouputEdgeList(nodes, indexmap, settings & Setting.SORT))
@@ -259,7 +287,7 @@ def extractArg(args):
 
 
 def printUsage():
-    assert len(Setting) == 9, "Exhaustive Setting definition"
+    assert len(Setting) == 10, "Exhaustive Setting definition"
     print("Usage:")
     print(f"{sys.argv[0]} [CMD] | [MODE <graph_in> MODE <graph_out> OPT]")
     print("CMD:")
@@ -269,6 +297,7 @@ def printUsage():
     print("\t-e\tThe file is interpreted as a list of edges")
     print("\t-bv\tThe file is interpreted as binary list ov vertices")
     print("OPT:")
+    print("\t-l\tDeletes self-looping edges")
     print("\t-u\tForce the output graph to be undirected")
     print("\t-s\tSort output ascending")
 
@@ -278,7 +307,7 @@ def main(args):
     inFile = None
     outFile = None
 
-    assert len(Setting) == 9, "Exhaustive Setting definition"
+    assert len(Setting) == 10, "Exhaustive Setting definition"
     while len(args) > 0:
         arg, args = extractArg(args)
 
@@ -324,6 +353,8 @@ def main(args):
             else:
                 settings |= Setting.OUT_BV
                 outFile = filename
+        elif arg == '-l':
+            settings |= Setting.NO_LOOP
         elif arg == '-u':
             settings |= Setting.UNDIR
         elif arg == '-s':

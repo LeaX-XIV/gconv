@@ -1,4 +1,5 @@
 *.txt
 *.gra
+*.graph
 *.csv
 *.bin
