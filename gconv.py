@@ -69,7 +69,7 @@ def inputEdgeList(lines):
     i = 0
 
     for line in lines:
-        v, w, *_ = line.strip().split('\t')
+        v, w, *_ = line.strip().split()
 
         if str(v) not in result:
             result[str(v)] = [int(w)]
@@ -295,7 +295,7 @@ def printUsage():
     print("MODE:")
     print("\t-v\tThe file is interpreted as a list of verteces")
     print("\t-e\tThe file is interpreted as a list of edges")
-    print("\t-bv\tThe file is interpreted as binary list ov vertices")
+    print("\t-bv\tThe file is interpreted as binary list of vertices")
     print("OPT:")
     print("\t-l\tDeletes self-looping edges")
     print("\t-u\tForce the output graph to be undirected")
