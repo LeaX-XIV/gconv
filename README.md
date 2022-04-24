@@ -42,7 +42,7 @@ Verteces with no outgoing edge **MUST** be included.
 
 ## *-bv*
 
-64-bit signed int little eendian encoding of graph.
+64-bit signed int little endian encoding of graph.
 
 **HEADER** (16 bytes):
 - *n<sub>V</sub>* (64 MSB)
@@ -114,9 +114,23 @@ First line contains the number of verteces `nV` (labelled `0` - `nV-1`).
 3	0
 ```
 
+## *-d10*
+
+First line contains the number of verteces *n<sub>V</sub>* (labelled 1 - *n<sub>V</sub>*) and number of undirected edges *n<sub>E</sub>*.
+Verteces with no outgoing edge result in an empty line.
+Usage of this mode is reccommended with *-u* flag (not enforced)
+
+```
+4 4
+2 3 4
+1 3
+1 2
+1
+```
+
 ## *-bv*
 
-64-bit signed int little eendian encoding of graph.
+64-bit signed int little endian encoding of graph.
 
 **HEADER** (16 bytes):
 - *n<sub>V</sub>* (64 MSB)

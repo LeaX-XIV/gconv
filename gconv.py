@@ -8,9 +8,11 @@ class Setting(Flag):
     NIL = 0
     IN_V = auto()
     IN_E = auto()
+    IN_D10 = auto()
     IN_BV = auto()
     OUT_V = auto()
     OUT_E = auto()
+    OUT_D10 = auto()
     OUT_BV = auto()
     NO_LOOP = auto()
     UNDIR = auto()
@@ -85,6 +87,23 @@ def inputEdgeList(lines):
         if str(w) not in indexmap:
             indexmap[str(w)] = i
             i += 1
+
+    return [result, indexmap]
+
+
+def inputDimacs10(lines):
+    result = {}
+    indexmap = {}
+    i = 1
+
+    header, *lines = lines
+    nV, nE = [int(n) for n in header.split()]
+
+    for line in lines:
+        assert i <= nV, f"Too many lines. Expected {nV}, found at least {i}"
+        result[str(i)] = list(map(int, line.split()))
+        indexmap[str(i)] = i - 1
+        i += 1
 
     return [result, indexmap]
 
@@ -202,6 +221,25 @@ def ouputEdgeList(nodeList, indexmap, doSort):
     ])
 
 
+def ouputDimacs10(nodeList, indexmap, doSort):
+    nV = len(nodeList)
+    # Conted only one way undirected edges
+    nE = int(sum([len(edges) for _, edges in nodeList.items()]) / 2)
+    return f"{nV} {nE}\n" + '\n'.join([
+        ' '.join([
+            # DIMACS10 uses 1-based node indexing
+            str(indexmap[str(e)] + 1) for e in
+                                (sorted(edges, \
+                                key=lambda e: int(indexmap[str(e)])) if doSort \
+                                else edges)
+            ])
+        for _, edges in
+            (sorted(nodeList.items(), \
+                key=lambda i: indexmap[i[0]]) if doSort \
+                else nodeList.items())
+    ])
+
+
 def outputBinaryVertex(nodeList, indexmap, doSort, pad=-1):
     nEmax = len(max(nodeList.values(), key=len))
     indexmap['-1'] = -1
@@ -227,13 +265,16 @@ def convert(inF, outF, settings):
 
     print(f"Loading {inF}...")
 
-    assert len(Setting) == 10, "Exhaustive Setting definition"
+    assert len(Setting) == 12, "Exhaustive Setting definition"
     if settings & Setting.IN_E:
         with open(inF, 'r') as f:
             [nodes, indexmap] = inputEdgeList(f.readlines())
     elif settings & Setting.IN_V:
         with open(inF, 'r') as f:
             [nodes, indexmap] = inputVertexList(f.readlines())
+    elif settings & Setting.IN_D10:
+        with open(inF, 'r') as f:
+            [nodes, indexmap] = inputDimacs10(f.readlines())
     elif settings & Setting.IN_BV:
         with open(inF, 'rb') as f:
             nV = int.from_bytes(f.read(8), byteorder='little', signed=True)
@@ -247,7 +288,7 @@ def convert(inF, outF, settings):
 
     print("Loading complete!")
 
-    assert len(Setting) == 10, "Exhaustive Setting definition"
+    assert len(Setting) == 12, "Exhaustive Setting definition"
     if settings & Setting.NO_LOOP:
         print("Removing looping edges...")
         [nodes, indexmap] = removeLoops(nodes, indexmap)
@@ -260,13 +301,16 @@ def convert(inF, outF, settings):
 
     print(f"Writing output file {outF}...")
 
-    assert len(Setting) == 10, "Exhaustive Setting definition"
+    assert len(Setting) == 12, "Exhaustive Setting definition"
     if settings & Setting.OUT_E:
         with open(outF, 'w') as f:
             f.write(ouputEdgeList(nodes, indexmap, settings & Setting.SORT))
     elif settings & Setting.OUT_V:
         with open(outF, 'w') as f:
             f.write(ouputVertexList(nodes, indexmap, settings & Setting.SORT))
+    elif settings & Setting.OUT_D10:
+        with open(outF, 'w') as f:
+            f.write(ouputDimacs10(nodes, indexmap, settings & Setting.SORT))
     elif settings & Setting.OUT_BV:
         with open(outF, 'wb') as f:
             for b in outputBinaryVertex(nodes, indexmap,
@@ -287,7 +331,7 @@ def extractArg(args):
 
 
 def printUsage():
-    assert len(Setting) == 10, "Exhaustive Setting definition"
+    assert len(Setting) == 12, "Exhaustive Setting definition"
     print("Usage:")
     print(f"{sys.argv[0]} [CMD] | [MODE <graph_in> MODE <graph_out> OPT]")
     print("CMD:")
@@ -295,6 +339,8 @@ def printUsage():
     print("MODE:")
     print("\t-v\tThe file is interpreted as a list of verteces")
     print("\t-e\tThe file is interpreted as a list of edges")
+    print(
+        "\t-d10\tThe file is interpreted as part of the 10th DIMACS challenge")
     print("\t-bv\tThe file is interpreted as binary list of vertices")
     print("OPT:")
     print("\t-l\tDeletes self-looping edges")
@@ -307,7 +353,7 @@ def main(args):
     inFile = None
     outFile = None
 
-    assert len(Setting) == 10, "Exhaustive Setting definition"
+    assert len(Setting) == 12, "Exhaustive Setting definition"
     while len(args) > 0:
         arg, args = extractArg(args)
 
@@ -339,6 +385,19 @@ def main(args):
                 inFile = filename
             else:
                 settings |= Setting.OUT_E
+                outFile = filename
+        elif arg == '-d10':
+            try:
+                filename, args = extractArg(args)
+            except KeyError:
+                printUsage()
+                sys.exit(0)
+
+            if inFile == None:
+                settings |= Setting.IN_D10
+                inFile = filename
+            else:
+                settings |= Setting.OUT_D10
                 outFile = filename
         elif arg == '-bv':
             try:
