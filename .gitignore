@@ -1,5 +1,6 @@
 *.txt
 *.gra
+*.dgra
 *.graph
 *.csv
 *.bin
