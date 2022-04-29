@@ -97,7 +97,7 @@ def inputDimacs10(lines):
     i = 1
 
     header, *lines = lines
-    nV, nE = [int(n) for n in header.split()]
+    nV, *_ = [int(n) for n in header.split()]
 
     for line in lines:
         assert i <= nV, f"Too many lines. Expected {nV}, found at least {i}"
