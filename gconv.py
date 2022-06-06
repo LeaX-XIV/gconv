@@ -287,17 +287,20 @@ def convert(inF, outF, settings):
         sys.exit(1)
 
     print("Loading complete!")
+    print(f"V: {len(nodes)}, E: {sum(map(len, nodes.values()))}")
 
     assert len(Setting) == 12, "Exhaustive Setting definition"
     if settings & Setting.NO_LOOP:
         print("Removing looping edges...")
         [nodes, indexmap] = removeLoops(nodes, indexmap)
         print("Looping edges removed!")
+        print(f"V: {len(nodes)}, E: {sum(map(len, nodes.values()))}")
 
     if settings & Setting.UNDIR:
         print("Checking graph for direct edges...")
         [nodes, indexmap] = checkUndir(nodes, indexmap)
         print("Graph is undirected!")
+        print(f"V: {len(nodes)}, E: {sum(map(len, nodes.values()))}")
 
     print(f"Writing output file {outF}...")
 
