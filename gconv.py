@@ -68,10 +68,22 @@ def inputVertexList(lines):
 def inputEdgeList(lines):
     result = {}
     indexmap = {}
-    i = 0
+    i = -1
+    nV = 0
+    nE = 0
 
     for line in lines:
+        # Skip comments
+        if line[0].strip() == '%':
+            continue
+
         v, w, *_ = line.strip().split()
+
+        # First line with graph dimentions
+        if i < 0:
+            nE, nV = [int(v), int(w)]
+            i += 1
+            continue
 
         if str(v) not in result:
             result[str(v)] = [int(w)]
@@ -87,6 +99,12 @@ def inputEdgeList(lines):
         if str(w) not in indexmap:
             indexmap[str(w)] = i
             i += 1
+
+    # Create isolated vertexes
+    while i < nV:
+        result[str(i)] = []
+        indexmap[str(i)] = i
+        i += 1
 
     return [result, indexmap]
 
@@ -206,7 +224,7 @@ def ouputVertexList(nodeList, indexmap, doSort):
 
 
 def ouputEdgeList(nodeList, indexmap, doSort):
-    return '\n'.join([
+    return f"{sum(map(len, nodeList.values()))}\t{len(nodeList)}\n" + '\n'.join([
         '\n'.join([
             f"{indexmap[str(v)]}\t{indexmap[str(w)]}"
             for w in
@@ -341,7 +359,7 @@ def printUsage():
     print("\t-h\tPrint this message")
     print("MODE:")
     print("\t-v\tThe file is interpreted as a list of verteces")
-    print("\t-e\tThe file is interpreted as a list of edges")
+    print("\t-e\tThe file is interpreted as a list of edges (quasi-matrix market)")
     print(
         "\t-d10\tThe file is interpreted as part of the 10th DIMACS challenge")
     print("\t-bv\tThe file is interpreted as binary list of vertices")
