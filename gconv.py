@@ -81,7 +81,7 @@ def inputEdgeList(lines):
 
         # First line with graph dimentions
         if i < 0:
-            nE, nV = [int(v), int(w)]
+            nV, nE = list(map(int, [v, w, *_]))[1:]
             i += 1
             continue
 
@@ -102,8 +102,8 @@ def inputEdgeList(lines):
 
     # Create isolated vertexes
     while i < nV:
-        result[str(i)] = []
-        indexmap[str(i)] = i
+        result[str(-i)] = []
+        indexmap[str(-i)] = i
         i += 1
 
     return [result, indexmap]
