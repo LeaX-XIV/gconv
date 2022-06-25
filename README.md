@@ -33,7 +33,11 @@ Verteces with no outgoing edge **MUST** be included.
 
 ## *-e*
 
+Lines starting with `%` will be ignored.
+First non-comment line contains the number of edges *n<sub>E</sub>* and number of vertices *n<sub>V</sub>*.  
+
 ```
+4	4
 0	1
 0	3
 1	2
@@ -91,7 +95,8 @@ strict graph {
 
 ## *-v*
 
-First line contains the number of verteces `nV` (labelled `0` - `nV-1`).
+First line contains the number of verteces *n<sub>V</sub>* (labelled 0 - *n<sub>V</sub>*-1).  
+Verteces with no outgoing edge **MUST** be included.
 
 ```
 4
@@ -103,7 +108,11 @@ First line contains the number of verteces `nV` (labelled `0` - `nV-1`).
 
 ## *-e*
 
+Lines starting with `%` will be ignored.
+First non-comment line contains the number of edges *n<sub>E</sub>* and number of vertices *n<sub>V</sub>*.  
+
 ```
+8	4
 0	1
 0	2
 0	3
