@@ -21,7 +21,6 @@ class Setting(Flag):
 
 def inputVertexList(lines):
     result = {}
-    indexmap = {}
     nV, *lines = lines
     try:
         nV = int(nV)
@@ -46,28 +45,26 @@ def inputVertexList(lines):
         if str(v) in result.keys():
             raise ValueError("Declared twice vertex " + v)
         result[str(v)] = list(map(int, edges))
-        indexmap[str(v)] = i
 
     # Correction for empty nodes not present
-    correction = []
-    for edges in result.values():
-        for w in edges:
-            if str(w) not in indexmap:
-                correction.append(str(w))
+    # correction = []
+    # for edges in result.values():
+    #     for w in edges:
+    #         if str(w) not in indexmap:
+    #             correction.append(str(w))
 
-    for w in correction:
-        if w not in result.keys():
-            result[w] = []
-        if w not in indexmap:
-            indexmap[w] = nV
-            nV += 1
+    # for w in correction:
+    #     if w not in result.keys():
+    #         result[w] = []
+    #     if w not in indexmap:
+    #         indexmap[w] = nV
+    #         nV += 1
 
-    return [result, indexmap]
+    return result
 
 
 def inputEdgeList(lines):
     result = {}
-    indexmap = {}
     i = -1
     nV = 0
     nE = 0
@@ -87,31 +84,24 @@ def inputEdgeList(lines):
 
         if str(v) not in result:
             result[str(v)] = [int(w)]
-
-            if str(v) not in indexmap:
-                indexmap[str(v)] = i
-                i += 1
+            i += 1
         else:
             result[str(v)].append(int(w))
 
         if str(w) not in result:
             result[str(w)] = []
-        if str(w) not in indexmap:
-            indexmap[str(w)] = i
             i += 1
 
     # Create isolated vertexes
     while i < nV:
         result[str(-i)] = []
-        indexmap[str(-i)] = i
         i += 1
 
-    return [result, indexmap]
+    return result
 
 
 def inputDimacs10(lines):
     result = {}
-    indexmap = {}
     i = 1
 
     header, *lines = lines
@@ -120,14 +110,12 @@ def inputDimacs10(lines):
     for line in lines:
         assert i <= nV, f"Too many lines. Expected {nV}, found at least {i}"
         result[str(i)] = list(map(int, line.split()))
-        indexmap[str(i)] = i - 1
         i += 1
 
-    return [result, indexmap]
+    return result
 
 
-def inputBinaryVertex(chunk, result={}, indexmap={}):
-    i = len(indexmap)
+def inputBinaryVertex(chunk, result={}):
     v = None
 
     for j in range(0, len(chunk), 8):
@@ -137,35 +125,26 @@ def inputBinaryVertex(chunk, result={}, indexmap={}):
             assert w >= 0, f'Expected positive value, found {w}'
 
             v = str(w)
-            if v not in indexmap:
-                indexmap[v] = i
-                i += 1
-
             result[v] = []
         else:
             if w < 0:
                 break
-
-            if str(w) not in indexmap:
-                indexmap[str(w)] = i
-                i += 1
-
             result[v].append(w)
 
-    return [result, indexmap]
+    return result
 
 
-def removeLoops(nodeList, indexmap):
+def removeLoops(nodeList):
     for v, edges in nodeList.items():
         try:
             edges.remove(int(v))
         except ValueError:
             continue
 
-    return [nodeList, indexmap]
+    return nodeList
 
 
-def checkUndir(nodeList, indexmap):
+def checkUndir(nodeList):
     missing = {}
 
     for v, edges in nodeList.items():
@@ -203,103 +182,105 @@ def checkUndir(nodeList, indexmap):
 
         print("Directness correction complete!")
 
-    return [nodeList, indexmap]
+    return nodeList
 
 
-def ouputVertexList(nodeList, indexmap, doSort):
+def ouputVertexList(nodeList, doSort):
+    skew = min(map(lambda i: int(i[0]), nodeList.items()))
     return f"{len(nodeList)}\n" + '\n'.join([
-        f"{indexmap[v]}: " \
+        f"{int(v) - skew}: " \
             + ' '.join([
-                str(indexmap[str(e)]) for e in
-                                    (sorted(edges, \
-                                    key=lambda e: int(indexmap[str(e)])) if doSort \
-                                    else edges)
+                str(e - skew) for e in
+                    (sorted(edges, \
+                    key=lambda e: int(e)) if doSort \
+                    else edges)
                 ])
             + " #"
         for v, edges in
             (sorted(nodeList.items(), \
-                key=lambda i: indexmap[i[0]]) if doSort \
+                key=lambda i: int(i[0])) if doSort \
                 else nodeList.items())
     ])
 
 
-def ouputEdgeList(nodeList, indexmap, doSort):
+def ouputEdgeList(nodeList, doSort):
+    skew = min(map(lambda i: int(i[0]), nodeList.items()))
     return f"{sum(map(len, nodeList.values()))}\t{len(nodeList)}\n" + '\n'.join([
         '\n'.join([
-            f"{indexmap[str(v)]}\t{indexmap[str(w)]}"
+            f"{str(v - skew)}\t{str(w - skew)}"
             for w in
                 (sorted(edges, \
-                    key=lambda e: indexmap[str(e)]) if doSort \
+                    key=lambda e: int(e)) if doSort \
                     else edges)
         ])
         for v, edges in
             (sorted(nodeList.items(), \
-                key=lambda i: indexmap[i[0]]) if doSort \
+                key=lambda i: int(i[0])) if doSort \
                 else nodeList.items())
     ])
 
 
-def ouputDimacs10(nodeList, indexmap, doSort):
+def ouputDimacs10(nodeList, doSort):
     nV = len(nodeList)
+    # DIMACS10 uses 1-based node indexing
+    skew = min(map(lambda i: int(i[0]), nodeList.items())) + 1
     # Conted only one way undirected edges
     nE = int(sum([len(edges) for _, edges in nodeList.items()]) / 2)
     return f"{nV} {nE}\n" + '\n'.join([
         ' '.join([
-            # DIMACS10 uses 1-based node indexing
-            str(indexmap[str(e)] + 1) for e in
-                                (sorted(edges, \
-                                key=lambda e: int(indexmap[str(e)])) if doSort \
-                                else edges)
+            str(e - skew) for e in
+                (sorted(edges, \
+                key=lambda e: int(e)) if doSort \
+                else edges)
             ])
         for _, edges in
             (sorted(nodeList.items(), \
-                key=lambda i: indexmap[i[0]]) if doSort \
+                key=lambda i: int(i[0])) if doSort \
                 else nodeList.items())
     ])
 
 
-def outputBinaryVertex(nodeList, indexmap, doSort, pad=-1):
+def outputBinaryVertex(nodeList, doSort, pad=-1):
     nEmax = len(max(nodeList.values(), key=len))
-    indexmap['-1'] = -1
     output = list(len(nodeList).to_bytes(8, 'little', signed=True)) + \
             list(nEmax.to_bytes(8, 'little', signed=True))
 
+    skew = min(map(lambda i: int(i[0]), nodeList.items()))
     for v, edges in (sorted(nodeList.items(), \
-                        key=lambda i: indexmap[i[0]]) if doSort \
+                        key=lambda i: int(i[0])) if doSort \
                         else nodeList.items()):
-        output += list(int(indexmap[v]).to_bytes(8, 'little', signed=True))
+        output += list((int(v) - skew).to_bytes(8, 'little', signed=True))
         edges = (sorted(edges, \
-                    key=lambda e: indexmap[str(e)]) if doSort \
+                    key=lambda e: int(e)) if doSort \
                     else edges)
         for w in (edges + [pad] * (nEmax - len(edges))):
-            output += list(indexmap[str(w)].to_bytes(8, 'little', signed=True))
+            outW = -1 if int(w) == -1 else int(w) - skew
+            output += list(outW.to_bytes(8, 'little', signed=True))
             yield bytearray(output)
             output = []
 
 
 def convert(inF, outF, settings):
     nodes = {}
-    indexmap = {}
 
     print(f"Loading {inF}...")
 
     assert len(Setting) == 12, "Exhaustive Setting definition"
     if settings & Setting.IN_E:
         with open(inF, 'r') as f:
-            [nodes, indexmap] = inputEdgeList(f.readlines())
+            nodes = inputEdgeList(f.readlines())
     elif settings & Setting.IN_V:
         with open(inF, 'r') as f:
-            [nodes, indexmap] = inputVertexList(f.readlines())
+            nodes = inputVertexList(f.readlines())
     elif settings & Setting.IN_D10:
         with open(inF, 'r') as f:
-            [nodes, indexmap] = inputDimacs10(f.readlines())
+            nodes = inputDimacs10(f.readlines())
     elif settings & Setting.IN_BV:
         with open(inF, 'rb') as f:
             nV = int.from_bytes(f.read(8), byteorder='little', signed=True)
             nEmax = int.from_bytes(f.read(8), byteorder='little', signed=True)
             for _ in range(nV):
-                [nodes, indexmap] = inputBinaryVertex(f.read(8 * (1 + nEmax)),
-                                                      nodes, indexmap)
+                nodes = inputBinaryVertex(f.read(8 * (1 + nEmax)), nodes)
     else:
         print(f"ERROR: inMode not specified")
         sys.exit(1)
@@ -310,13 +291,13 @@ def convert(inF, outF, settings):
     assert len(Setting) == 12, "Exhaustive Setting definition"
     if settings & Setting.NO_LOOP:
         print("Removing looping edges...")
-        [nodes, indexmap] = removeLoops(nodes, indexmap)
+        nodes = removeLoops(nodes)
         print("Looping edges removed!")
         print(f"V: {len(nodes)}, E: {sum(map(len, nodes.values()))}")
 
     if settings & Setting.UNDIR:
         print("Checking graph for direct edges...")
-        [nodes, indexmap] = checkUndir(nodes, indexmap)
+        nodes = checkUndir(nodes)
         print("Graph is undirected!")
         print(f"V: {len(nodes)}, E: {sum(map(len, nodes.values()))}")
 
@@ -325,17 +306,16 @@ def convert(inF, outF, settings):
     assert len(Setting) == 12, "Exhaustive Setting definition"
     if settings & Setting.OUT_E:
         with open(outF, 'w') as f:
-            f.write(ouputEdgeList(nodes, indexmap, settings & Setting.SORT))
+            f.write(ouputEdgeList(nodes, settings & Setting.SORT))
     elif settings & Setting.OUT_V:
         with open(outF, 'w') as f:
-            f.write(ouputVertexList(nodes, indexmap, settings & Setting.SORT))
+            f.write(ouputVertexList(nodes, settings & Setting.SORT))
     elif settings & Setting.OUT_D10:
         with open(outF, 'w') as f:
-            f.write(ouputDimacs10(nodes, indexmap, settings & Setting.SORT))
+            f.write(ouputDimacs10(nodes, settings & Setting.SORT))
     elif settings & Setting.OUT_BV:
         with open(outF, 'wb') as f:
-            for b in outputBinaryVertex(nodes, indexmap,
-                                        settings & Setting.SORT):
+            for b in outputBinaryVertex(nodes, settings & Setting.SORT):
                 f.write(b)
     else:
         print(f"ERROR: outMode not specified")
